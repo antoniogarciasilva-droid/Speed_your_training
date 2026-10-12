@@ -1097,12 +1097,12 @@ else:
                 try:
                     with st.spinner(f"Conectando con {dispositivo_actual} (límite: {limite_seguro})..."):
                         if dispositivo_actual == "Garmin":
-                            from garmin_ingestor import GarminIngestor
+                            from garmin_ingestor_v2 import GarminIngestor
                             ingestor = GarminIngestor(st.session_state.user_id)
                             cantidad = ingestor.sincronizar(limite=limite_seguro)
                             
                         elif dispositivo_actual == "Coros":
-                            from coros_ingestor import CorosIngestor
+                            from coros_ingestor_v2 import CorosIngestor
                             ingestor = CorosIngestor(st.session_state.user_id)
                             cantidad = ingestor.sincronizar(limite=limite_seguro)
                             
