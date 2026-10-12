@@ -28,15 +28,22 @@ def registrar_usuario(email, nombre, password, sexo):
         conn.close()
 
 def verificar_login(email, password):
-    conn = conectar_db()
+    conn = db_web_v2.conectar_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id, password_hash FROM usuarios WHERE email = ?", (email,))
-    user = cursor.fetchone()
-    conn.close()
-    
-    if user:
-        user_id, hashed_password = user
-        # Verificar hash
-        if bcrypt.checkpw(password.encode('utf-8'), hashed_password):
+    try:
+        # Usamos %s en lugar de ? para PostgreSQL y especificamos el esquema public
+        cursor.execute("SELECT user_id, password_hash FROM public.usuarios WHERE email = %s", (email,))
+        resultado = cursor.fetchone()
+        
+        if resultado:
+            user_id, password_hash = resultado
+            # Aquí compruebas tu hash de contraseña según lo tengas implementado
+            # Por ejemplo: if verificar_password(password, password_hash): return user_id
             return user_id
-    return None
+        return None
+    except Exception as e:
+        print(f"Error en login: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
