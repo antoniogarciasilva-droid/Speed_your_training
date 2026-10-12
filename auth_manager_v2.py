@@ -8,25 +8,21 @@ def conectar_db():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     return sqlite3.connect(os.path.join(base_dir, 'web_analytics.db'))
 
+import streamlit as st
+
 def registrar_usuario(email, nombre, password, sexo):
     conn = db_web_v2.conectar_db()
     cursor = conn.cursor()
     try:
-        # Consulta SQL limpia para PostgreSQL con placeholders %s
-        query = """
-            INSERT INTO usuarios (email, nombre, password_hash, sexo) 
-            VALUES (%s, %s, %s, %s)
-        """
-        
-        cursor.execute(query, (email, nombre, password, sexo))
+        sql = 'INSERT INTO public.usuarios (email, nombre, password_hash, sexo) VALUES (%s, %s, %s, %s)'
+        cursor.execute(sql, (email, nombre, password, sexo))
         conn.commit()
         return True
-        
     except Exception as e:
-        print(f"Error detallado en registro: {e}")
+        # Esto imprimirá el error exacto en rojo directamente en tu pantalla
+        st.error(f"ERROR DE SQL EXACTO: {e}")
         conn.rollback()
         return False
-        
     finally:
         cursor.close()
         conn.close()
