@@ -184,7 +184,7 @@ if 'user_id' not in st.session_state:
         email = st.text_input("Email", key="login_email")
         pwd = st.text_input("Contraseña", type="password", key="login_pwd")
         if st.button("Entrar"):
-            user_id = auth_manager.verificar_login(email, pwd)
+            user_id = auth_manager_v2.verificar_login(email, pwd)
             if user_id:
                 st.session_state.user_id = user_id
                 sincronizar_fisiologia_usuario(user_id)
