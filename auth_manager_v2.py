@@ -17,8 +17,8 @@ def registrar_usuario(email, nombre, password, sexo):
     cursor = conn.cursor()
     try:
         # Añadimos 'sexo' en el INSERT y en los valores
-        cursor.execute('''INSERT INTO usuarios (email, nombre, password_hash, sexo) 
-                          VALUES (%s, %s, %s, %s)''', (email, nombre, hashed_password, sexo))
+        cursor.execute("INSERT INTO usuarios (email, nombre, password_hash, sexo) VALUES (%s, %s, %s, %s)",
+        (email, nombre, hashed_password, sexo))
         conn.commit()
         return True
     except sqlite3.IntegrityError:
