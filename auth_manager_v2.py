@@ -13,7 +13,7 @@ def registrar_usuario(email, nombre, password, sexo):
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
     
-    conn = db_web.conectar_db()
+    conn = db_web_v2.conectar_db()
     cursor = conn.cursor()
     try:
         # Añadimos 'sexo' en el INSERT y en los valores
