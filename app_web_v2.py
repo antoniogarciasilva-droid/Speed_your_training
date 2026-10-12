@@ -199,7 +199,7 @@ if 'user_id' not in st.session_state:
         pwd_reg = st.text_input("Contraseña", type="password", key="reg_pwd")
         
         if st.button("Crear cuenta"):
-            if auth_manager.registrar_usuario(email_reg, nombre_reg, pwd_reg, sexo_reg):
+            if auth_manager_v2.registrar_usuario(email_reg, nombre_reg, pwd_reg, sexo_reg):
                 st.success("¡Cuenta creada! Ya puedes iniciar sesión.")
             else:
                 st.error("Error: El email ya está registrado.")
