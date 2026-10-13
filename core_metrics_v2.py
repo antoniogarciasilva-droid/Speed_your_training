@@ -23,7 +23,7 @@ def calcular_trimp_dinamico(minutos, fc_media, fc_max, fc_reposo, sexo='M'):
 
 def procesar_curvas_acumuladas(user_id):
     """Calcula las curvas de Banister filtrando estrictamente por el user_id activo."""
-    conn = db_web.conectar_db()
+    conn = db_web_v2.conectar_db()
     
     # Nota: Como la fecha está normalizada en la tabla 'actividades' o 'historial_entrenamientos',
     # aseguramos la consulta cruzando con actividades para obtener la fecha filtrando por user_id.
