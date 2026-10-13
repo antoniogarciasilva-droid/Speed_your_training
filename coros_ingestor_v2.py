@@ -28,7 +28,7 @@ class CorosIngestor:
         print(f"🔄 Conectando con COROS MCP ({self.mcp_endpoint}) para el usuario {self.user_id} (Límite: {limite})...")
         
         # 1. Obtener el token de acceso OAuth/Bearer de la base de datos o entorno
-        conn = db_web.conectar_db()
+        conn = db_web_v2.conectar_db()
         cursor = conn.cursor()
         cursor.execute("""
             SELECT password_token 
@@ -58,7 +58,7 @@ class CorosIngestor:
             print("⚠️ No se obtuvieron actividades desde el servidor MCP de COROS.")
             return 0
 
-        conn = db_web.conectar_db()
+        conn = db_web_v2.conectar_db()
         cursor = conn.cursor()
         count = 0
 
