@@ -180,18 +180,42 @@ if 'user_id' not in st.session_state:
     st.title("🔐 Acceso al sistema")
     tab_login, tab_registro = st.tabs(["Iniciar Sesión", "Registrarse"])
     
+#    with tab_login:
+#        email = st.text_input("Email", key="login_email")
+#        pwd = st.text_input("Contraseña", type="password", key="login_pwd")
+#        if st.button("Entrar"):
+#            user_id = auth_manager_v2.verificar_login(email, pwd)
+#            if user_id:
+#                st.session_state.user_id = user_id
+#                sincronizar_fisiologia_usuario(user_id)
+#                st.rerun() 
+#            else:
+#                st.error("Email o contraseña incorrectos.")
+
     with tab_login:
-        email = st.text_input("Email", key="login_email")
-        pwd = st.text_input("Contraseña", type="password", key="login_pwd")
-        if st.button("Entrar"):
+        # Usamos un formulario para que la pulsación de Intro o del botón envíe todo limpio
+        with st.form("form_login"):
+            email = st.text_input("Email", key="login_email")
+            pwd = st.text_input("Contraseña", type="password", key="login_pwd")
+            submit_button = st.form_submit_button("Entrar")
+
+        if submit_button:
             user_id = auth_manager_v2.verificar_login(email, pwd)
             if user_id:
                 st.session_state.user_id = user_id
-                sincronizar_fisiologia_usuario(user_id)
-                st.rerun() 
+                st.session_state.logged_in = True
+                
+                # Sincronizamos mostrando un mensaje elegante de carga
+                with st.spinner("Iniciando sesión y sincronizando perfil..."):
+                    try:
+                        sincronizar_fisiologia_usuario(user_id)
+                    except Exception as e:
+                        print(f"Aviso en sincronización de login: {e}")
+                
+                st.rerun()
             else:
                 st.error("Email o contraseña incorrectos.")
-                
+
     with tab_registro:
         email_reg = st.text_input("Email", key="reg_email")
         nombre_reg = st.text_input("Nombre", key="reg_nombre")
