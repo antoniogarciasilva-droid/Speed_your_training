@@ -10,10 +10,10 @@ class GarminIngestor:
     def __init__(self, user_id):
         self.user_id = user_id
         self.client = None
-        self.email, self.password = self._cargar_credenciales()
+        self.email, self.password = self._cargar_credenciales()[cite: 3]
 
     def _cargar_credenciales(self):
-        """Busca las credenciales de Garmin en la tabla unificada para este usuario."""
+        """Busca las credenciales de Garmin en la tabla unificada para este usuario."""[cite: 3]
         conn = db_web_v2.conectar_db()
         cursor = conn.cursor()
         cursor.execute(
@@ -24,20 +24,20 @@ class GarminIngestor:
         conn.close()
 
         if not creds:
-            raise Exception("No hay credenciales de Garmin configuradas para este usuario.")
+            raise Exception("No hay credenciales de Garmin configuradas para este usuario.")[cite: 3]
         
         return creds[0], creds[1]
 
     def conectar(self):
         if not self.email or not self.password:
-            self.email, self.password = self._cargar_credenciales()
+            self.email, self.password = self._cargar_credenciales()[cite: 3]
            
         self.client = Garmin(self.email, self.password)
-        self.client.login() 
+        self.client.login()[cite: 3]
 
     def actualizar_datos_fisiologicos_garmin(self):
             if not self.client:
-                self.conectar()
+                self.conectar()[cite: 3]
                 
             today = datetime.now().strftime('%Y-%m-%d')
             
@@ -48,7 +48,7 @@ class GarminIngestor:
                 cursor.execute("SELECT 1 FROM historial_fisiologico WHERE user_id = %s AND fecha_inicio = %s", 
                             (self.user_id, today))
                 if cursor.fetchone():
-                    return True 
+                    return True[cite: 3] 
                     
                 fc_max = None
                 fc_reposo = None
@@ -69,17 +69,22 @@ class GarminIngestor:
                     cursor.execute("SELECT fc_maxima FROM historial_fisiologico WHERE user_id = %s AND fc_maxima IS NOT NULL ORDER BY fecha_inicio DESC LIMIT 1", (self.user_id,))
                     ultimo_registro = cursor.fetchone()
                     if ultimo_registro:
-                        fc_max = ultimo_registro[0]
+                        fc_max = int(ultimo_registro[0]) if ultimo_registro[0] is not None else None
 
                 if fc_reposo or fc_max:
                     cursor.execute('''
                         INSERT INTO historial_fisiologico (user_id, fecha_inicio, fc_maxima, fc_reposo) 
                         VALUES (%s, %s, %s, %s)
-                    ''', (self.user_id, today, fc_max, fc_reposo))
-                    conn.commit()
+                    ''', (
+                        int(self.user_id), 
+                        str(today), 
+                        int(fc_max) if fc_max is not None else None, 
+                        int(fc_reposo) if fc_reposo is not None else None
+                    ))
+                    conn.commit()[cite: 3]
                     
             except Exception as e:
-                print(f"Aviso al sincronizar fisiología: {e}")
+                print(f"Aviso al sincronizar fisiología: {e}")[cite: 3]
             finally:
                 conn.close()
                 
@@ -87,12 +92,12 @@ class GarminIngestor:
 
     def sincronizar(self, limite=5):
         if not self.client:
-            self.conectar()
+            self.conectar()[cite: 3]
             
         try:
             self.actualizar_datos_fisiologicos_garmin()
         except Exception as e:
-            print(f"Aviso: No se pudo actualizar el perfil fisiológico: {e}")
+            print(f"Aviso: No se pudo actualizar el perfil fisiológico: {e}")[cite: 3]
 
         actividades = self.client.get_activities(0, limite)
         
@@ -112,32 +117,32 @@ class GarminIngestor:
             existe = cursor.fetchone()
 
             if existe:
-                print(f"⏭️ Saltando: {nombre_sesion} ({act_id}) (Ya existe en BD)")
+                print(f"⏭️ Saltando: {nombre_sesion} ({act_id}) (Ya existe en BD)")[cite: 3]
                 continue
 
             if tipo_act not in ['running', 'track_running', 'elliptical']:
                 continue
             
-            print(f"🔍 Procesando: {nombre_sesion} ({fecha_dia})")
+            print(f"🔍 Procesando: {nombre_sesion} ({fecha_dia})")[cite: 3]
 
             try:
                 splits = self.client.get_activity_splits(act_id)
                 laps_raw = splits.get('lapDTOs', [])
             except Exception as e:
-                print(f"   ⚠️ No se pudieron obtener splits: {e}")
+                print(f"   ⚠️ No se pudieron obtener splits: {e}")[cite: 3]
                 continue
                 
-            if not laps_raw: continue
+            if not laps_raw: continue[cite: 3]
                 
             laps_data = []
             for lap in laps_raw:
-                d_m = lap.get('distance', 0.0)
-                dur_s = lap.get('duration', 0.0)
+                d_m = float(lap.get('distance', 0.0) or 0.0)
+                dur_s = float(lap.get('duration', 0.0) or 0.0)
                 laps_data.append({
-                    'lap_index': lap.get('lapIndex', 0),
+                    'lap_index': int(lap.get('lapIndex', 0) or 0),
                     'Minutos': dur_s / 60.0,
-                    'FC_Media': lap.get('averageHR', 0),
-                    'FC_max': lap.get('maxHR', 0),
+                    'FC_Media': float(lap.get('averageHR', 0) or 0),
+                    'FC_max': float(lap.get('maxHR', 0) or 0),
                     'Ritmo_Seg': (dur_s / (d_m / 1000.0)) if d_m > 100 else None,
                     'Distancia_Km': d_m / 1000.0
                 })
@@ -146,9 +151,9 @@ class GarminIngestor:
             if tipo_act != 'elliptical':
                 df_laps = df_laps.dropna(subset=['Ritmo_Seg'])
 
-            distancia_total = df_laps['Distancia_Km'].sum()
-            duracion_total = df_laps['Minutos'].sum()
-            fc_media_sesion = df_laps['FC_Media'].mean()
+            distancia_total = float(df_laps['Distancia_Km'].sum()) if not df_laps.empty else 0.0
+            duracion_total = float(df_laps['Minutos'].sum()) if not df_laps.empty else 0.0
+            fc_media_sesion = float(df_laps['FC_Media'].mean()) if not df_laps.empty else 0.0
 
             today = datetime.now().strftime('%Y-%m-%d')
             cursor.execute("""
@@ -160,20 +165,20 @@ class GarminIngestor:
             """, (self.user_id, today))
             fisiologia_row = cursor.fetchone()
             
-            fc_max_usuario = fisiologia_row[0] if fisiologia_row and fisiologia_row[0] else 185
-            fc_reposo_usuario = fisiologia_row[1] if fisiologia_row and fisiologia_row[1] else 45
+            fc_max_usuario = int(fisiologia_row[0]) if fisiologia_row and fisiologia_row[0] else 185
+            fc_reposo_usuario = int(fisiologia_row[1]) if fisiologia_row and fisiologia_row[1] else 45
 
             cursor.execute("SELECT sexo FROM usuarios WHERE user_id = %s", (self.user_id,))
             user_row = cursor.fetchone()
-            sexo_usuario = user_row[0] if user_row and user_row[0] else 'M'
+            sexo_usuario = str(user_row[0]) if user_row and user_row[0] else 'M'
 
-            trimp = core_metrics_v2.calcular_trimp_dinamico(
+            trimp = float(core_metrics_v2.calcular_trimp_dinamico(
                 duracion_total, 
                 fc_media_sesion, 
                 fc_max_usuario, 
                 fc_reposo_usuario, 
                 sexo=sexo_usuario
-            )
+            ) or 0.0)
 
             cursor.execute('''
                 INSERT INTO actividades 
@@ -181,7 +186,12 @@ class GarminIngestor:
                 VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (user_id, actividad_id) DO NOTHING
             ''', (
-                self.user_id, act_id, fecha_dia, nombre_sesion, tipo_act, distancia_total
+                int(self.user_id), 
+                str(act_id), 
+                str(fecha_dia) if fecha_dia else None, 
+                str(nombre_sesion) if nombre_sesion else "", 
+                str(tipo_act), 
+                float(distancia_total)
             ))
             
             for _, row in df_laps.iterrows():
@@ -190,8 +200,12 @@ class GarminIngestor:
                     (user_id, actividad_id, lap_index, ritmo_seg_km, fc_media, fc_maxima) 
                     VALUES (%s, %s, %s, %s, %s, %s)
                 ''', (
-                    self.user_id, act_id, row.get('lap_index'), 
-                    row.get('Ritmo_Seg'), row.get('FC_Media'), row.get('FC_max')
+                    int(self.user_id), 
+                    str(act_id), 
+                    int(row.get('lap_index', 0)), 
+                    float(row.get('Ritmo_Seg')) if pd.notna(row.get('Ritmo_Seg')) else None, 
+                    float(row.get('FC_Media', 0)), 
+                    float(row.get('FC_max', 0))
                 ))
 
             cursor.execute('''
@@ -199,10 +213,13 @@ class GarminIngestor:
                 (user_id, actividad_id, trimp, trimp_min, trimp_km, km, minutos) 
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             ''', (
-                self.user_id, act_id, trimp, 
-                (trimp / duracion_total if duracion_total > 0 else 0), 
-                (trimp / distancia_total if distancia_total > 0 else 0), 
-                distancia_total, duracion_total
+                int(self.user_id), 
+                str(act_id), 
+                float(trimp), 
+                float(trimp / duracion_total if duracion_total > 0 else 0), 
+                float(trimp / distancia_total if distancia_total > 0 else 0), 
+                float(distancia_total), 
+                float(duracion_total)
             ))
 
             df_laps = pd.DataFrame(laps_data)
@@ -211,24 +228,30 @@ class GarminIngestor:
             
             porcentaje_deriva, fc_i, fc_f, tipo_analisis, puntos_json = calcular_deriva_sesion(df_laps, duracion_total, tipo_act)
             
-            vel_ms = act.get("averageSpeed", 0.0)
+            vel_ms = float(act.get("averageSpeed", 0.0) or 0.0)
             if vel_ms > 0:
-                ritmo_medio_seg = 1000.0 / vel_ms  
+                ritmo_medio_seg = float(1000.0 / vel_ms)  
             else:
-                ritmo_medio_seg = act.get("avgPace", act.get("pace", 300))
+                ritmo_medio_seg = float(act.get("avgPace", act.get("pace", 300)) or 300)
 
             cursor.execute('''
                 INSERT INTO historial_derivas 
                 (user_id, actividad_id, porcentaje_deriva, fc_inicial, fc_final, tipo_analisis, ritmo_medio, puntos_deriva_json) 
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
-                self.user_id, act_id, porcentaje_deriva, 
-                fc_i, fc_f, tipo_analisis, ritmo_medio_seg, puntos_json
+                int(self.user_id), 
+                str(act_id), 
+                float(porcentaje_deriva) if porcentaje_deriva is not None else 0.0, 
+                float(fc_i) if fc_i is not None else 0.0, 
+                float(fc_f) if fc_f is not None else 0.0, 
+                str(tipo_analisis) if tipo_analisis else "", 
+                float(ritmo_medio_seg), 
+                str(puntos_json) if puntos_json else "{}"
             ))
 
             count += 1
         
-        conn.commit()
-        conn.close()
+        conn.commit()[cite: 3]
+        conn.close()[cite: 3]
         
-        return count
+        return count[cite: 3]
