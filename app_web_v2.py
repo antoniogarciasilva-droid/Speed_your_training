@@ -425,8 +425,8 @@ else:
                     trimp_val = metricas_carga[0] if (metricas_carga and metricas_carga[0] is not None) else 0.0
                     minutos_val = metricas_carga[1] if (metricas_carga and metricas_carga[1] is not None) else 0.0
                     
-                    import core_metrics
-                    df_banister = core_metrics.procesar_curvas_acumuladas(st.session_state.user_id)
+                    import core_metrics_v2
+                    df_banister = core_metrics_v2.procesar_curvas_acumuladas(st.session_state.user_id)
                     
                     atl_val, ctl_val, tsb_val, acwr_val = 0.0, 0.0, 0.0, 0.0
                     if not df_banister.empty and fecha_act:
@@ -630,8 +630,8 @@ else:
 
         st.subheader("Tendencia de Carga y Forma Física")
     
-        import core_metrics
-        df_plot = core_metrics.procesar_curvas_acumuladas(st.session_state.user_id)
+        import core_metrics_v2
+        df_plot = core_metrics_v2.procesar_curvas_acumuladas(st.session_state.user_id)
         if not df_plot.empty:
             df_plot.index = pd.to_datetime(df_plot.index).date 
 
@@ -1141,7 +1141,7 @@ else:
                     
                     try:
                         with st.spinner("Procesando archivos subidos..."):
-                            from fit_ingestor import FitIngestor
+                            from fit_ingestor_v2 import FitIngestor
                             ingestor = FitIngestor(user_id=st.session_state.user_id, carpeta_fit=carpeta_temp)
                             cantidad = ingestor.sincronizar()
                             st.success(f"✅ Se han procesado e importado {cantidad} actividades desde los ficheros subidos.")
@@ -1161,7 +1161,7 @@ else:
                     if st.button("Procesar carpeta local de ficheros .FIT", key="btn_process_local_folder"):
                         try:
                             with st.spinner("Importando ficheros .fit locales..."):
-                                from fit_ingestor import FitIngestor
+                                from fit_ingestor_v2 import FitIngestor
                                 ingestor = FitIngestor(user_id=st.session_state.user_id, carpeta_fit=carpeta_fit)
                                 cantidad = ingestor.sincronizar()
                                 st.success(f"✅ Se han procesado {cantidad} actividades desde la carpeta local.")
