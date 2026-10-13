@@ -31,7 +31,7 @@ class FitIngestor:
         print(f"✅ Ficheros .fit detectados para procesar: {len(archivos)}")
 
         count = 0
-        conn = db_web.conectar_db()
+        conn = db_web_v2.conectar_db()
         cursor = conn.cursor()
 
         for archivo in archivos:
@@ -161,7 +161,7 @@ class FitIngestor:
             else:
                 ritmo_medio_seg = 300
 
-            trimp = core_metrics.calcular_trimp_dinamico(
+            trimp = core_metrics_v2.calcular_trimp_dinamico(
                 duracion_total, fc_media_sesion, fc_max_usuario, fc_reposo_usuario, sexo=sexo_usuario
             )
 
