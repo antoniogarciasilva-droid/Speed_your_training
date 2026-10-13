@@ -1,4 +1,3 @@
-import sqlite3
 import pandas as pd
 import math
 import db_web_v2  # <-- Usamos tu gestor de base de datos unificado de la app web
@@ -25,13 +24,12 @@ def procesar_curvas_acumuladas(user_id):
     """Calcula las curvas de Banister filtrando estrictamente por el user_id activo."""
     conn = db_web_v2.conectar_db()
     
-    # Nota: Como la fecha está normalizada en la tabla 'actividades' o 'historial_entrenamientos',
-    # aseguramos la consulta cruzando con actividades para obtener la fecha filtrando por user_id.
+    # Corregido: Usamos %s en lugar de ? para compatibilidad nativa con PostgreSQL
     query = '''
         SELECT a.fecha, h.trimp 
         FROM historial_entrenamientos h
         JOIN actividades a ON h.actividad_id = a.actividad_id
-        WHERE h.user_id = ?
+        WHERE h.user_id = %s
         ORDER BY a.fecha ASC
     '''
     df_trimp = pd.read_sql_query(query, conn, params=(user_id,))
