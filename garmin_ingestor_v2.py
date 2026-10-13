@@ -10,10 +10,10 @@ class GarminIngestor:
     def __init__(self, user_id):
         self.user_id = user_id
         self.client = None
-        self.email, self.password = self._cargar_credenciales()[cite: 3]
+        self.email, self.password = self._cargar_credenciales()
 
     def _cargar_credenciales(self):
-        """Busca las credenciales de Garmin en la tabla unificada para este usuario."""[cite: 3]
+        """Busca las credenciales de Garmin en la tabla unificada para este usuario."""
         conn = db_web_v2.conectar_db()
         cursor = conn.cursor()
         cursor.execute(
@@ -24,20 +24,20 @@ class GarminIngestor:
         conn.close()
 
         if not creds:
-            raise Exception("No hay credenciales de Garmin configuradas para este usuario.")[cite: 3]
+            raise Exception("No hay credenciales de Garmin configuradas para este usuario.")
         
         return creds[0], creds[1]
 
     def conectar(self):
         if not self.email or not self.password:
-            self.email, self.password = self._cargar_credenciales()[cite: 3]
+            self.email, self.password = self._cargar_credenciales()
            
         self.client = Garmin(self.email, self.password)
-        self.client.login()[cite: 3]
+        self.client.login()
 
     def actualizar_datos_fisiologicos_garmin(self):
             if not self.client:
-                self.conectar()[cite: 3]
+                self.conectar()
                 
             today = datetime.now().strftime('%Y-%m-%d')
             
@@ -48,7 +48,7 @@ class GarminIngestor:
                 cursor.execute("SELECT 1 FROM historial_fisiologico WHERE user_id = %s AND fecha_inicio = %s", 
                             (self.user_id, today))
                 if cursor.fetchone():
-                    return True[cite: 3] 
+                    return True 
                     
                 fc_max = None
                 fc_reposo = None
@@ -81,10 +81,10 @@ class GarminIngestor:
                         int(fc_max) if fc_max is not None else None, 
                         int(fc_reposo) if fc_reposo is not None else None
                     ))
-                    conn.commit()[cite: 3]
+                    conn.commit()
                     
             except Exception as e:
-                print(f"Aviso al sincronizar fisiología: {e}")[cite: 3]
+                print(f"Aviso al sincronizar fisiología: {e}")
             finally:
                 conn.close()
                 
@@ -92,12 +92,12 @@ class GarminIngestor:
 
     def sincronizar(self, limite=5):
         if not self.client:
-            self.conectar()[cite: 3]
+            self.conectar()
             
         try:
             self.actualizar_datos_fisiologicos_garmin()
         except Exception as e:
-            print(f"Aviso: No se pudo actualizar el perfil fisiológico: {e}")[cite: 3]
+            print(f"Aviso: No se pudo actualizar el perfil fisiológico: {e}")
 
         actividades = self.client.get_activities(0, limite)
         
@@ -117,22 +117,22 @@ class GarminIngestor:
             existe = cursor.fetchone()
 
             if existe:
-                print(f"⏭️ Saltando: {nombre_sesion} ({act_id}) (Ya existe en BD)")[cite: 3]
+                print(f"⏭️ Saltando: {nombre_sesion} ({act_id}) (Ya existe en BD)")
                 continue
 
             if tipo_act not in ['running', 'track_running', 'elliptical']:
                 continue
             
-            print(f"🔍 Procesando: {nombre_sesion} ({fecha_dia})")[cite: 3]
+            print(f"🔍 Procesando: {nombre_sesion} ({fecha_dia})")
 
             try:
                 splits = self.client.get_activity_splits(act_id)
                 laps_raw = splits.get('lapDTOs', [])
             except Exception as e:
-                print(f"   ⚠️ No se pudieron obtener splits: {e}")[cite: 3]
+                print(f"   ⚠️ No se pudieron obtener splits: {e}")
                 continue
                 
-            if not laps_raw: continue[cite: 3]
+            if not laps_raw: continue
                 
             laps_data = []
             for lap in laps_raw:
@@ -251,7 +251,7 @@ class GarminIngestor:
 
             count += 1
         
-        conn.commit()[cite: 3]
-        conn.close()[cite: 3]
+        conn.commit()
+        conn.close()
         
-        return count[cite: 3]
+        return count
