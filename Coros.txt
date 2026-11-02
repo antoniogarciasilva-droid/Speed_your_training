@@ -36,4 +36,94 @@ Code:
 File: Code
 ```
 npx skills add supabase/agent-skills
+
+
+
+### PUESTA EN PRODUCCIÓN CAMBIOS REALIZADOS EN VERSIONES NUEVAS ###
+
+¡Me alegra muchísimo que haya quedado redondo!
+
+Como en tu entorno de producción el archivo principal de la web se llama **`app_web_v2.py`** (y el archivo en el que hemos estado trabajando es `app_dash.py`), el procedimiento para subirlo y dejarlo operativo es muy sencillo y limpio.
+
+Aquí tienes los pasos exactos que debes seguir para actualizarlo en producción:
+
+### 1. Reemplazar o renombrar el archivo en tu servidor/carpeta de producción
+
+Tienes dos opciones igual de válidas:
+
+* **Opción A (Sustituir contenido):** Copia todo el contenido de tu archivo `app_dash.py` (el que acabamos de dejar fino) y pégalo dentro de `app_web_v2.py` (guardando los cambios). De esta forma, el nombre que busca tu servidor de producción seguirá siendo exactamente el mismo.
+* **Opción B (Renombrar):** Si prefieres mantener el archivo físico con el nuevo nombre, asegúrate de actualizar en tu panel de hosting o servicio de despliegue (como Streamlit Community Cloud, Render, Heroku o tu VPS) el archivo de inicio (entrypoint) para que ahora apunte a `app_dash.py`. *Por comodidad y para evitar tocar configuraciones externas, la **Opción A** es la más rápida y directa.*
+
+### 2. Verificar dependencias e importaciones
+
+Asegúrate de que la parte superior de tu archivo de producción (`app_web_v2.py`) mantenga todas las importaciones necesarias (incluyendo `import io` que acabamos de añadir para el JSON de Pandas):
+
+
+### 3. Comprobar el archivo de secretos (`secrets.toml`)
+
+Como comentamos al cambiar de ordenador, recuerda que en el entorno de producción debe existir la carpeta `.streamlit/secrets.toml` con las credenciales de tu base de datos Supabase correctamente configuradas en la ruta raíz del proyecto.
+
+### 4. Reiniciar la aplicación en producción
+
+* **Si lo despliegas de forma local o en un servidor propio (VPS):** Detén el proceso actual de Python en la terminal (`Ctrl + C`) y vuelve a lanzarlo con:
+```bash
+python app_web_v2.py
+
+
+
+* **Si usas una plataforma en la nube (como Streamlit Cloud o similar):** Al hacer el *push* de los cambios a tu repositorio de GitHub (o actualizar el archivo), la plataforma detectará el cambio automáticamente, recompilará la aplicación y la desplegará con la última versión de forma limpia.
+
+¡Y listo! Con esto tu aplicación estará funcionando en producción con todas las mejoras de calendario, selectores y comparativas a pleno rendimiento. ¡Gran trabajo de desarrollo conjunto!
+
+Como utilizas una plataforma en la nube (habitualmente integrada con **GitHub** para proyectos en Python y Dash), para subir los cambios (hacer el *push*) debes utilizar la terminal de tu ordenador donde tienes el proyecto sincronizado con Git.
+
+Aquí tienes los pasos exactos que debes seguir paso a paso:
+
+### 1. Abrir la terminal en la carpeta del proyecto
+
+Abre tu terminal (por ejemplo, la terminal integrada de VS Code) asegurándote de estar situado en la carpeta raíz de tu proyecto:
+`C:\Users\ANTONIOGARCIASILVA\OneDrive - ViewNext\AGS\9995 - RM\09 - Formacion insa\12 - Curso Python\Athletics_analytics web\`
+
+### 2. Comprobar el estado de los archivos
+
+Escribe el siguiente comando para ver qué archivos han sido modificados (debería aparecer `app_web_v2.py` o el archivo que hayas actualizado):
+
+```bash
+git status
+
 ```
+
+### 3. Añadir los cambios al área de preparación (Stage)
+
+Añade el archivo modificado para prepararlo para el registro:
+
+```bash
+git add app_web_v2.py
+
+```
+
+*(Si has modificado algún archivo más y quieres subirlos todos a la vez, puedes usar `git add .`)*
+
+### 4. Crear un "Commit" (guardar los cambios localmente con un mensaje descriptivo)
+
+Registra los cambios en tu historial local añadiendo un mensaje que describa lo que has hecho:
+
+```bash
+git commit -m "Actualizacion de app_web_v2.py con mejoras de calendario y comparativa"
+
+```
+
+### 5. Enviar los cambios a la nube (Hacer el Push)
+
+Por último, envía los cambios a tu repositorio remoto (normalmente la rama `main` o `master`):
+
+```bash
+git push origin main
+
+```
+
+*(Nota: Si tu rama principal se llama `master` en lugar de `main`, cambia `main` por `master`).*
+
+---
+
+Una vez ejecutado el comando `git push`, tu plataforma en la nube (como Streamlit Community Cloud u otra similar) detectará automáticamente el nuevo commit, se sincronizará con tu repositorio y actualizará la aplicación desplegada en pocos minutos. ¡Y listo!
