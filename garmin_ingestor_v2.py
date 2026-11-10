@@ -116,11 +116,13 @@ class GarminIngestor:
                            (self.user_id, act_id))
             existe = cursor.fetchone()
 
+            print(f"Actividad detectada - Tipo: {tipo_act}")
+                            
             if existe:
                 print(f"⏭️ Saltando: {nombre_sesion} ({act_id}) (Ya existe en BD)")
                 continue
-
-            if tipo_act not in ['running', 'track_running', 'elliptical']:
+            
+            if tipo_act not in ['running', 'track_running', 'elliptical', 'indoor_running']:
                 continue
             
             print(f"🔍 Procesando: {nombre_sesion} ({fecha_dia})")
