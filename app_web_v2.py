@@ -609,15 +609,39 @@ def renderizar_app(user_id, menu_seleccionado, cal_anho, cal_mes):
                 dbc.Row([
                     dbc.Col([
                         html.Label("Sesión 1 (Base):", className="fw-bold mb-1"),
-                        dcc.Dropdown(id='comp-sesion-1', options=options_acts, placeholder="Selecciona la primera sesión...", className="mb-3")
+                        dbc.Input(
+                            id="filtro-comp-sesion-1",
+                            type="text",
+                            placeholder="Filtrar por texto exacto (ej. rodaje j)...",
+                            debounce=False,
+                            className="mb-2"
+                        ),
+                        dcc.Dropdown(
+                            id='comp-sesion-1',
+                            options=options_acts,
+                            searchable=False,
+                            placeholder="Selecciona la primera sesión...",
+                            className="mb-3"
+                        )
                     ], width=6),
                     dbc.Col([
                         html.Label("Sesión 2 (Comparar):", className="fw-bold mb-1"),
-                        dcc.Dropdown(id='comp-sesion-2', options=options_acts, placeholder="Selecciona la segunda sesión...", className="mb-3")
+                        dbc.Input(
+                            id="filtro-comp-sesion-2",
+                            type="text",
+                            placeholder="Filtrar por texto exacto (ej. controlado 8)...",
+                            debounce=False,
+                            className="mb-2"
+                        ),
+                        dcc.Dropdown(
+                            id='comp-sesion-2',
+                            options=options_acts,
+                            searchable=False,
+                            placeholder="Selecciona la segunda sesión...",
+                            className="mb-3"
+                        )
                     ], width=6),
                 ]),
-                dbc.Button("Comparar Sesiones", id="btn-ejecutar-comparativa", color="primary", className="mb-4 fw-bold"),
-                html.Div(id="resultado-comparativa-div")
                 dbc.Button("Comparar Sesiones", id="btn-ejecutar-comparativa", color="primary", className="mb-4 fw-bold"),
                 html.Div(id="resultado-comparativa-div"),
                 dcc.Store(id="store-opciones-comparativa", data=options_acts)
@@ -761,19 +785,19 @@ def renderizar_app(user_id, menu_seleccionado, cal_anho, cal_mes):
 # --- 5. CALLBACKS DE INTERACTIVIDAD ---
 
 # Callback dedicado para filtrar actividades en la pantalla de comparativa
-def _filtrar_opciones_exactas(search_value, valor_actual, todas_las_opciones):
+
+def _filtrar_opciones_exactas(search_value, valor_actual, todas_las_opciondef _filtrar_opciones_exactas(texto_filtro, valor_actual, todas_las_opciones):
     if not todas_las_opciones:
         return []
-    if not search_value or not search_value.strip():
+    if not texto_filtro or not texto_filtro.strip():
         return todas_las_opciones
 
-    patron = search_value.strip().lower()
+    patron = texto_filtro.strip().lower()
     filtradas = [
         opt for opt in todas_las_opciones
         if patron in str(opt.get("label", "")).lower()
     ]
 
-    # Conserva la opción ya seleccionada aunque no encaje con el nuevo texto de búsqueda
     if valor_actual is not None:
         ids_filtrados = {opt.get("value") for opt in filtradas}
         if valor_actual not in ids_filtrados:
@@ -789,22 +813,22 @@ def _filtrar_opciones_exactas(search_value, valor_actual, todas_las_opciones):
 
 @app.callback(
     Output("comp-sesion-1", "options"),
-    Input("comp-sesion-1", "search_value"),
+    Input("filtro-comp-sesion-1", "value"),
     [State("comp-sesion-1", "value"), State("store-opciones-comparativa", "data")],
     prevent_initial_call=True,
 )
-def filtrar_dropdown_sesion_1(search_value, valor_actual, todas_las_opciones):
-    return _filtrar_opciones_exactas(search_value, valor_actual, todas_las_opciones)
+def filtrar_dropdown_sesion_1(texto_filtro, valor_actual, todas_las_opciones):
+    return _filtrar_opciones_exactas(texto_filtro, valor_actual, todas_las_opciones)
 
 
 @app.callback(
     Output("comp-sesion-2", "options"),
-    Input("comp-sesion-2", "search_value"),
+    Input("filtro-comp-sesion-2", "value"),
     [State("comp-sesion-2", "value"), State("store-opciones-comparativa", "data")],
     prevent_initial_call=True,
 )
-def filtrar_dropdown_sesion_2(search_value, valor_actual, todas_las_opciones):
-    return _filtrar_opciones_exactas(search_value, valor_actual, todas_las_opciones)
+def filtrar_dropdown_sesion_2(texto_filtro, valor_actual, todas_las_opciones):
+    return _filtrar_opciones_exactas(texto_filtro, valor_actual, todas_las_opciones)
 
 # Callback dedicado para actualizar el detalle de la sesión sin recargar el calendario
 @app.callback(
