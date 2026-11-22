@@ -642,6 +642,7 @@ def renderizar_app(user_id, menu_seleccionado, cal_anho, cal_mes):
                         )
                     ], width=6),
                 ]),
+
                 dbc.Button("Comparar Sesiones", id="btn-ejecutar-comparativa", color="primary", className="mb-4 fw-bold"),
                 html.Div(id="resultado-comparativa-div"),
                 dcc.Store(id="store-opciones-comparativa", data=options_acts)
