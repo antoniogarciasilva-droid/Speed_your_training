@@ -786,7 +786,7 @@ def renderizar_app(user_id, menu_seleccionado, cal_anho, cal_mes):
 
 # Callback dedicado para filtrar actividades en la pantalla de comparativa
 
-def _filtrar_opciones_exactas(search_value, valor_actual, todas_las_opciondef _filtrar_opciones_exactas(texto_filtro, valor_actual, todas_las_opciones):
+def _filtrar_opciones_exactas(texto_filtro, valor_actual, todas_las_opciones):
     if not todas_las_opciones:
         return []
     if not texto_filtro or not texto_filtro.strip():
