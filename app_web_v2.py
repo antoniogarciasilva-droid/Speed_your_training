@@ -21,7 +21,7 @@ from fit_ingestor_v2 import FitIngestor
 import core_metrics_v2
 import io  
 
-# 1. Inicializar la BBDD
+# 1. Inicializar la BBDD 
 db_web_v2.inicializar_db_web()
 
 # Inicializar Dash con un tema moderno de Bootstrap
