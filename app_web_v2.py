@@ -1,4 +1,5 @@
 import os
+import json
 import calendar
 from datetime import datetime, timedelta
 import pandas as pd
@@ -132,6 +133,72 @@ def crear_tarjeta_kpi(etiqueta, valor, nombre_metrica):
         "position": "relative"
     })
 
+def _extraer_clave_sesion(item: dict) -> str:
+    """Obtiene la palabra clave inicial (en minúsculas) del nombre o tipo de sesión."""
+    texto = (item.get("nombre") or item.get("tipo") or item.get("label") or "").strip().lower()
+    if not texto:
+        return ""
+    tokens = texto.replace("-", " ").split()
+    return tokens[0] if tokens else ""
+
+def _crear_tarjeta_candidata_comp(item: dict):
+    """Tarjeta seleccionable con estética alineada a las tarjetas de KPI."""
+    aid = int(item["actividad_id"])
+    titulo_corto = (item.get("nombre") or item.get("tipo") or "Sesión").strip()
+    if len(titulo_corto) > 22:
+        titulo_corto = titulo_corto[:20] + "…"
+    fecha_str = str(item.get("fecha", ""))[:10]
+    dist_val = float(item.get("distancia_km") or 0.0)
+
+    return html.Button(
+        [
+            html.Div(
+                fecha_str,
+                style={
+                    "margin": "0",
+                    "color": "#475569",
+                    "fontSize": "0.7rem",
+                    "fontWeight": "bold",
+                },
+            ),
+            html.Div(
+                titulo_corto,
+                style={
+                    "margin": "2px 0",
+                    "color": "#0f172a",
+                    "fontSize": "0.82rem",
+                    "fontWeight": "bold",
+                    "whiteSpace": "nowrap",
+                    "overflow": "hidden",
+                    "textOverflow": "ellipsis",
+                },
+            ),
+            html.Div(
+                f"{dist_val:.1f} km",
+                style={
+                    "margin": "0",
+                    "color": "#1d4ed8",
+                    "fontSize": "0.78rem",
+                    "fontWeight": "700",
+                },
+            ),
+        ],
+        id={"type": "btn-candidata-comp", "index": aid},
+        n_clicks=0,
+        type="button",
+        style={
+            "backgroundColor": "#f8fafc",
+            "padding": "6px 10px",
+            "borderRadius": "8px",
+            "textAlign": "center",
+            "border": "1px solid #cbd5e1",
+            "boxShadow": "0 2px 4px rgba(0,0,0,0.05)",
+            "cursor": "pointer",
+            "minWidth": "115px",
+            "maxWidth": "165px",
+        },
+    )
+
 # --- 2. LAYOUT PRINCIPAL Y CONTROL DE SESIÓN ---
 app.layout = html.Div([
     dcc.Store(id='store-user-id', data=None, storage_type='session'),
@@ -139,6 +206,7 @@ app.layout = html.Div([
     dcc.Store(id='store-activa', data=None, storage_type='session'),
     dcc.Store(id='store-cal-anho', data=datetime.today().year, storage_type='session'),
     dcc.Store(id='store-cal-mes', data=datetime.today().month, storage_type='session'),
+    dcc.Store(id='store-comp-origen', data=None, storage_type='session'),
     html.Div(id='dummy-scroll-div', style={'display': 'none'}),
     html.Div(id='main-container')
 ])
@@ -598,9 +666,21 @@ def renderizar_app(user_id, menu_seleccionado, cal_anho, cal_mes):
         conn.close()
 
         options_acts = []
+        catalogo_acts = []
         if not df_acts_comp.empty:
             df_acts_comp['label'] = df_acts_comp['nombre'].fillna(df_acts_comp['tipo']).fillna("Sesión") + " (" + df_acts_comp['fecha'].astype(str) + ")"
-            options_acts = [{"label": row['label'], "value": int(row['actividad_id'])} for _, row in df_acts_comp.iterrows()]
+            for _, row in df_acts_comp.iterrows():
+                aid_int = int(row['actividad_id'])
+                lbl_str = str(row['label'])
+                options_acts.append({"label": lbl_str, "value": aid_int})
+                catalogo_acts.append({
+                    "actividad_id": aid_int,
+                    "label": lbl_str,
+                    "nombre": str(row['nombre']) if pd.notna(row['nombre']) else "",
+                    "tipo": str(row['tipo']) if pd.notna(row['tipo']) else "",
+                    "fecha": str(row['fecha']),
+                    "distancia_km": float(row['distancia_km']) if pd.notna(row['distancia_km']) else 0.0,
+                })
 
         content = dbc.Container([
             navbar,
@@ -643,9 +723,35 @@ def renderizar_app(user_id, menu_seleccionado, cal_anho, cal_mes):
                     ], width=6),
                 ]),
 
-                dbc.Button("Comparar Sesiones", id="btn-ejecutar-comparativa", color="primary", className="mb-4 fw-bold"),
+                html.Div([
+                    html.Div([
+                        dbc.Button(
+                            "Comparar Sesiones",
+                            id="btn-ejecutar-comparativa",
+                            color="primary",
+                            className="fw-bold"
+                        )
+                    ], style={"display": "flex", "alignItems": "center", "flexShrink": 0}),
+                    html.Div(
+                        id="candidatas-comparativa-div",
+                        style={
+                            "display": "flex",
+                            "alignItems": "stretch",
+                            "gap": "8px",
+                            "flexWrap": "wrap",
+                            "flex": "1"
+                        }
+                    )
+                ], style={
+                    "display": "flex",
+                    "alignItems": "center",
+                    "gap": "14px",
+                    "flexWrap": "wrap"
+                }, className="mb-4"),
+
                 html.Div(id="resultado-comparativa-div"),
-                dcc.Store(id="store-opciones-comparativa", data=options_acts)
+                dcc.Store(id="store-opciones-comparativa", data=options_acts),
+                dcc.Store(id="store-catalogo-comparativa", data=catalogo_acts)
             ], style={"marginTop": "6rem", "paddingBottom": "3rem"})
         ], fluid=True)
 
@@ -785,8 +891,7 @@ def renderizar_app(user_id, menu_seleccionado, cal_anho, cal_mes):
 
 # --- 5. CALLBACKS DE INTERACTIVIDAD ---
 
-# Callback dedicado para filtrar actividades en la pantalla de comparativa
-
+# Callbacks para filtrar actividades en la pantalla de comparativa
 def _filtrar_opciones_exactas(texto_filtro, valor_actual, todas_las_opciones):
     if not todas_las_opciones:
         return []
@@ -830,6 +935,104 @@ def filtrar_dropdown_sesion_1(texto_filtro, valor_actual, todas_las_opciones):
 )
 def filtrar_dropdown_sesion_2(texto_filtro, valor_actual, todas_las_opciones):
     return _filtrar_opciones_exactas(texto_filtro, valor_actual, todas_las_opciones)
+
+
+# Callbacks para el flujo rápido desde Sesión Individual hacia Comparativa
+@app.callback(
+    [
+        Output("store-comp-origen", "data"),
+        Output("store-menu", "data", allow_duplicate=True),
+    ],
+    Input("btn-ir-comparar-sesion", "n_clicks"),
+    State("store-activa", "data"),
+    prevent_initial_call=True,
+)
+def navegar_a_comparativa_desde_sesion(n_clicks, actividad_activa):
+    if not n_clicks or not actividad_activa:
+        return dash.no_update, dash.no_update
+    return {"actividad_id": int(actividad_activa)}, "Comparativa"
+
+
+@app.callback(
+    [
+        Output("comp-sesion-1", "value", allow_duplicate=True),
+        Output("store-comp-origen", "data", allow_duplicate=True),
+    ],
+    Input("store-comp-origen", "data"),
+    State("store-catalogo-comparativa", "data"),
+    prevent_initial_call=True,
+)
+def aplicar_sesion_origen_a_base_1(comp_origen, catalogo):
+    if not comp_origen or not comp_origen.get("actividad_id"):
+        return dash.no_update, dash.no_update
+
+    aid_origen = int(comp_origen["actividad_id"])
+    if catalogo and not any(int(c["actividad_id"]) == aid_origen for c in catalogo):
+        return dash.no_update, None
+
+    return aid_origen, None
+
+
+@app.callback(
+    Output("candidatas-comparativa-div", "children"),
+    Input("comp-sesion-1", "value"),
+    State("store-catalogo-comparativa", "data"),
+)
+def actualizar_candidatas_similares(aid_base, catalogo):
+    if not aid_base or not catalogo:
+        return []
+
+    aid_base_int = int(aid_base)
+    base_item = next((c for c in catalogo if int(c["actividad_id"]) == aid_base_int), None)
+    if not base_item:
+        return []
+
+    clave_base = _extraer_clave_sesion(base_item)
+    dist_base = float(base_item.get("distancia_km") or 0.0)
+    margen_km = 2.0
+
+    candidatas = []
+    for item in catalogo:
+        if int(item["actividad_id"]) == aid_base_int:
+            continue
+        clave_cand = _extraer_clave_sesion(item)
+        dist_cand = float(item.get("distancia_km") or 0.0)
+
+        misma_clave = bool(clave_base) and (clave_cand == clave_base)
+        distancia_similar = abs(dist_cand - dist_base) <= margen_km
+
+        if misma_clave and distancia_similar:
+            candidatas.append(item)
+
+    candidatas_top = candidatas[:5]
+    if not candidatas_top:
+        return [
+            html.Span(
+                f"Sin sesiones similares recientes (±{margen_km:.0f} km).",
+                style={"fontSize": "0.8rem", "color": "#64748b"},
+            )
+        ]
+
+    return [_crear_tarjeta_candidata_comp(c) for c in candidatas_top]
+
+
+@app.callback(
+    Output("comp-sesion-2", "value", allow_duplicate=True),
+    Input({"type": "btn-candidata-comp", "index": ALL}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def seleccionar_candidata_en_sesion_2(n_clicks_list):
+    ctx = callback_context
+    if not ctx.triggered or not n_clicks_list or all((v or 0) == 0 for v in n_clicks_list):
+        return dash.no_update
+
+    try:
+        prop_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        dict_id = json.loads(prop_id)
+        return int(dict_id["index"])
+    except Exception:
+        return dash.no_update
+
 
 # Callback dedicado para actualizar el detalle de la sesión sin recargar el calendario
 @app.callback(
@@ -1009,7 +1212,22 @@ def actualizar_detalle_sesion(actividad_activa, user_id):
         html.Div(id='resumen-sesion-anchor'),
         html.Div([
             html.Hr(),
-            html.H4("📋 Resumen de la Sesión Seleccionada", className="mb-3 text-dark"),
+            html.Div([
+                html.H4("📋 Resumen de la Sesión Seleccionada", className="mb-0 text-dark"),
+                dbc.Button(
+                    "⚖️ Comparar sesión",
+                    id="btn-ir-comparar-sesion",
+                    color="outline-primary",
+                    size="sm",
+                    className="fw-bold"
+                )
+            ], style={
+                "display": "flex",
+                "alignItems": "center",
+                "justifyContent": "space-between",
+                "gap": "10px",
+                "flexWrap": "wrap"
+            }, className="mb-3"),
             kpis_row1,
             kpis_row2,
             alerta_deriva,
@@ -1148,11 +1366,17 @@ def procesar_ficheros_fit(n_upload, n_local, user_id, contents_list, filenames_l
 # Callbacks para el Módulo de Comparativa
 @app.callback(
     Output("resultado-comparativa-div", "children"),
-    Input("btn-ejecutar-comparativa", "n_clicks"),
-    [State("store-user-id", "data"), State("comp-sesion-1", "value"), State("comp-sesion-2", "value")],
+    [Input("btn-ejecutar-comparativa", "n_clicks"), Input("comp-sesion-2", "value")],
+    [State("store-user-id", "data"), State("comp-sesion-1", "value")],
     prevent_initial_call=True
 )
-def generar_comparativa_sesiones(n_clicks, user_id, aid1, aid2):
+def generar_comparativa_sesiones(n_clicks, aid2, user_id, aid1):
+    ctx = callback_context
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else ""
+
+    if trigger_id == "comp-sesion-2" and (not aid1 or not aid2):
+        return dash.no_update
+
     if not aid1 or not aid2:
         return dbc.Alert("Selecciona dos sesiones para comparar.", color="warning")
     
@@ -1246,7 +1470,6 @@ def generar_comparativa_sesiones(n_clicks, user_id, aid1, aid2):
         )
     ], style={"display": "flex", "alignItems": "center", "marginBottom": "10px"})
 
-    # Guardamos los dataframes serializados o en stores/divs auxiliares o generamos el gráfico inicial por defecto (FC)
     fig_comp_fc = go.Figure()
     if not vueltas1.empty:
         fig_comp_fc.add_trace(go.Scatter(x=vueltas1['lap_index'], y=vueltas1['fc_media'], name=f"{nom1} ({fec1})", line=dict(color="#2563eb", width=3)))
@@ -1307,7 +1530,6 @@ def generar_comparativa_sesiones(n_clicks, user_id, aid1, aid2):
             dbc.Col(dcc.Graph(figure=fig_eff1), width=6),
             dbc.Col(dcc.Graph(figure=fig_eff2), width=6),
         ]),
-        # Stores ocultos para mantener los datos de las dos sesiones seleccionadas para el selector de gráfica
         dcc.Store(id='store-comp-s1', data=vueltas1.to_json(date_format='iso', orient='split') if not vueltas1.empty else None),
         dcc.Store(id='store-comp-s2', data=vueltas2.to_json(date_format='iso', orient='split') if not vueltas2.empty else None),
         dcc.Store(id='store-comp-meta', data={"nom1": nom1, "fec1": fec1, "nom2": nom2, "fec2": fec2})
@@ -1452,7 +1674,6 @@ def seleccionar_actividad_calendario(n_clicks):
     if not ctx.triggered or ctx.triggered[0]['value'] in [None, 0]:
         return dash.no_update
     
-    import json
     try:
         dict_id = json.loads(ctx.triggered[0]['prop_id'].split('.')[0])
         return dict_id['index']
@@ -1479,6 +1700,5 @@ app.clientside_callback(
 )
 
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get('PORT', 8050))
     app.run(host='0.0.0.0', port=port, debug=False)
